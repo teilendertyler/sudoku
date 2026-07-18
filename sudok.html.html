@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sudoku Game</title>
+    <style>
+        body {
+            font-family: 'Calibri', sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        h1 {
+            margin-top: 20px;
+            font-size: 36px;
+            color: #333;
+            text-transform: uppercase;
+        }
+
+        #sudoku-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 40px);
+            grid-template-rows: repeat(9, 40px);
+            gap: 2px;
+            margin: 20px auto;
+            width: max-content;
+        }
+
+        .cell {
+            width: 40px;
+            height: 40px;
+            text-align: center;
+            font-size: 18px;
+            border: 1px solid #ddd;
+            background-color: #fffefe;
+            outline: none;
+        }
+
+        .cell.fixed {
+            background-color: #d9eaff; /* Pastel blue */
+            font-weight: bolder;
+        }
+
+        .cell:nth-child(3n):not(:last-child) {
+            border-right: 2px solid #333; /* Thick border for 3x3 blocks */
+        }
+
+        .cell:nth-child(n+19):nth-child(-n+27),
+        .cell:nth-child(n+46):nth-child(-n+54) {
+            border-bottom: 2px solid #333; /* Thick border for 3x3 blocks */
+        }
+
+        #controls {
+            margin: 20px;
+        }
+
+        button {
+            margin: 5px;
+            padding: 10px 20px;
+            font-size: 16px;
+            text-transform: capitalize;
+            border: none;
+            border-radius: 1px;
+            background-color: #9c7df0;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #1e7e70;
+        }
+
+        button:active {
+            background-color: #1e7e70;
+        }
+
+        #check-button {
+            background-color: #82b7f0;
+        }
+
+        #check-button:hover {
+            background-color: #218875;
+        }
+
+        #check-button:active {
+            background-color: #1e7e70;
+
+        }
+    </style>
+</head>
+<body>
+    <h1>Sudoku Game</h1>
+    <div id="sudoku-grid"></div>
+    <div id="controls">
+        <button onclick="generateSudoku()">Generate Sudoku</button>
+        <button onclick="solveSudoku()">Solve Sudoku</button>
+        <button onclick="clearGrid()">Clear Grid</button>
+        <button id="check-button" onclick="checkProgress()">Check Progress</button>
+    </div>
+
+    <script>
+        const SIZE = 9;
+        let grid = Array.from({ length: SIZE }, () => Array(SIZE).fill(0));
+        let fixed = Array.from({ length: SIZE }, () => Array(SIZE).fill(false));
+
+        const sudokuGrid = document.getElementById('sudoku-grid');
+
+        // Create grid cells
+        function createGrid() {
+            sudokuGrid.innerHTML = '';
+            for (let row = 0; row < SIZE; row++) {
+                for (let col = 0; col < SIZE; col++) {
+                    const cell = document.createElement('input');
+                    cell.type = 'text';
+                    cell.maxLength = 1;
+                    cell.className = 'cell';
+                    if (fixed[row][col]) {
+                        cell.classList.add('fixed');
+                        cell.readOnly = true;
+                        cell.value = grid[row][col];
+                    } else {
+                        cell.addEventListener('input', (e) => handleInput(e, row, col));
+                        cell.value = grid[row][col] || '';
+                    }
+                    sudokuGrid.appendChild(cell);
+                }
+            }
+        }
+
+        function handleInput(event, row, col) {
+            const value = parseInt(event.target.value, 10);
+            if (isNaN(value) || value < 1 || value > 9) {
+                event.target.value = '';
+                grid[row][col] = 0;
+            } else {
+                grid[row][col] = value;
+            }
+        }
+
+        function generateSudoku() {
+            clearGrid();
+            for (let i = 0; i < 20; i++) {
+                const row = Math.floor(Math.random() * SIZE);
+                const col = Math.floor(Math.random() * SIZE);
+                const value = Math.floor(Math.random() * 9) + 1;
+                if (isValid(row, col, value)) {
+                    grid[row][col] = value;
+                    fixed[row][col] = true;
+                }
+            }
+            createGrid();
+        }
+
+        function solveSudoku() {
+            if (solve(0, 0)) {
+                createGrid();
+                alert('Sudoku solved!');
+            } else {
+                alert('No solution exists.');
+            }
+        }
+
+        function solve(row, col) {
+            if (row === SIZE) return true;
+            if (col === SIZE) return solve(row + 1, 0);
+            if (grid[row][col] !== 0) return solve(row, col + 1);
+
+            for (let num = 1; num <= SIZE; num++) {
+                if (isValid(row, col, num)) {
+                    grid[row][col] = num;
+                    if (solve(row, col + 1)) return true;
+                    grid[row][col] = 0;
+                }
+            }
+            return false;
+        }
+
+        function isValid(row, col, value) {
+            for (let i = 0; i < SIZE; i++) {
+                if (grid[row][i] === value || grid[i][col] === value) return false;
+            }
+            const startRow = Math.floor(row / 3) * 3;
+            const startCol = Math.floor(col / 3) * 3;
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    if (grid[startRow + i][startCol + j] === value) return false;
+                }
+            }
+            return true;
+        }
+
+        function clearGrid() {
+            grid = Array.from({ length: SIZE }, () => Array(SIZE).fill(0));
+            fixed = Array.from({ length: SIZE }, () => Array(SIZE).fill(false));
+            createGrid();
+        }
+
+        function checkProgress() {
+            let correct = true;
+            for (let row = 0; row < SIZE; row++) {
+                for (let col = 0; col < SIZE; col++) {
+                    if (!fixed[row][col] && grid[row][col] !== 0 && !isValid(row, col, grid[row][col])) {
+                        correct = false;
+                        break;
+                    }
+                }
+            }
+            alert(correct ? 'Everything looks correct so far!' : 'There are mistakes in your grid.');
+        }
+
+        createGrid();
+    </script>
+</body>
+</html>
